@@ -16,10 +16,16 @@ type RecTrack = {
 
 export default function RecScreen({ route }: RootStackScreenProps<"Rec">) {
   const { title, artist } = route.params;
+  const [processing, setProcessing] = useState(false);
   const [recs, setRecs] = useState<RecTrack[]>();
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    populateRecs();
+  }, []);
+
+  const populateRecs = () => {
+    setProcessing(true);
     getBearerToken()
       .then((token) => getSongRecs(token))
       .then((recs) => setRecs(recs))
@@ -28,8 +34,9 @@ export default function RecScreen({ route }: RootStackScreenProps<"Rec">) {
           console.log(err.response?.data.error);
           console.log(err.response?.data.error_description);
         }
-      });
-  }, []);
+      })
+      .finally(() => setProcessing(false));
+  };
 
   const getBearerToken = async () => {
     const config = {
@@ -101,26 +108,22 @@ export default function RecScreen({ route }: RootStackScreenProps<"Rec">) {
       </Text>
       <Text style={styles.separator}></Text>
       <Text style={styles.title}>Recommended Songs</Text>
-      <View style={[styles.list]}>
-        {recs ? (
-          <FlashList
-            data={recs}
-            renderItem={({ item }) => (
-              <Text style={styles.item}>
-                {item.name} by {item.artist}
-              </Text>
-            )}
-            estimatedItemSize={100}
-            refreshing={false}
-            onRefresh={() =>
-              getBearerToken()
-                .then((token) => getSongRecs(token))
-                .then((recs) => setRecs(recs))
-            }
-          />
-        ) : (
-          <ActivityIndicator />
-        )}
+      <View style={styles.list}>
+        <FlashList
+          data={recs}
+          renderItem={({ item }) => (
+            <Text style={styles.item}>
+              {item.name} by {item.artist}
+            </Text>
+          )}
+          estimatedItemSize={100}
+          refreshing={processing}
+          onRefresh={() => populateRecs()}
+          ListEmptyComponent={
+            <Text style={styles.notFound}>No Recommendations Found</Text>
+          }
+          contentContainerStyle={styles.item}
+        />
       </View>
     </View>
   );
@@ -136,6 +139,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
+  notFound: {
+    marginVertical: 20,
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   separator: {
     marginVertical: 30,
     height: 1,
@@ -144,10 +153,12 @@ const styles = StyleSheet.create({
   list: {
     height: Dimensions.get("screen").height * 0.5,
     width: Dimensions.get("screen").width,
+    marginVertical: 20,
   },
   item: {
-    height: 50,
-    width: Dimensions.get("screen").width,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
     backgroundColor: "#1DB954",
+    textAlign: "center",
   },
 });
