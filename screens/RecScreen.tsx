@@ -111,6 +111,7 @@ export default function RecScreen({ route }: RootStackScreenProps<"Rec">) {
               </Text>
             )}
             estimatedItemSize={100}
+            refreshing={false}
             onRefresh={() =>
               getBearerToken()
                 .then((token) => getSongRecs(token))
