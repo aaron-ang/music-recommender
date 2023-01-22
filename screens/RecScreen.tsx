@@ -120,9 +120,9 @@ export default function RecScreen({ route }: RootStackScreenProps<"Rec">) {
           refreshing={processing}
           onRefresh={() => populateRecs()}
           ListEmptyComponent={
-            <Text style={styles.notFound}>No Recommendations Found</Text>
+            <Text style={styles.title}>No Recommendations Found</Text>
           }
-          contentContainerStyle={styles.item}
+          contentContainerStyle={styles.flashlist}
         />
       </View>
     </View>
@@ -138,11 +138,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-  },
-  notFound: {
-    marginVertical: 20,
-    fontSize: 20,
-    fontWeight: "bold",
     textAlign: "center",
   },
   separator: {
@@ -156,9 +151,11 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   item: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: "#1DB954",
     textAlign: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+  },
+  flashlist: {
+    backgroundColor: "#1DB954",
   },
 });
