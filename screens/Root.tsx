@@ -1,22 +1,17 @@
-import { ActivityIndicator, Button, StyleSheet } from "react-native";
+import { ActivityIndicator, Alert, Button, StyleSheet } from "react-native";
 import { useState } from "react";
 import { Audio } from "expo-av";
+import * as Haptics from "expo-haptics";
 import * as FileSystem from "expo-file-system";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
-import EditScreenInfo from "../components/EditScreenInfo";
-import { Text, View } from "../components/Themed";
-import { RootTabScreenProps } from "../types";
-import {
-  SHAZAM_API_KEY,
-  SHAZAM_API_HOST,
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_CLIENT_SECRET,
-} from "@env";
+import { View } from "../components/Themed";
+import { RootStackScreenProps } from "../types";
+import { SHAZAM_API_KEY, SHAZAM_API_HOST } from "@env";
 
 const customRecordingOptions: Audio.RecordingOptions = {
   android: {
-    extension: ".3gp",
+    extension: ".m4a",
     outputFormat: Audio.AndroidOutputFormat.THREE_GPP,
     audioEncoder: Audio.AndroidAudioEncoder.AMR_NB,
     sampleRate: 44100,
@@ -24,7 +19,7 @@ const customRecordingOptions: Audio.RecordingOptions = {
     bitRate: 128000,
   },
   ios: {
-    extension: ".caf",
+    extension: ".m4a",
     audioQuality: Audio.IOSAudioQuality.MIN,
     sampleRate: 44100,
     numberOfChannels: 1,
@@ -39,15 +34,13 @@ const customRecordingOptions: Audio.RecordingOptions = {
   },
 };
 
-export default function TabOneScreen({
-  navigation,
-}: RootTabScreenProps<"TabOne">) {
+export default function Root({ navigation }: RootStackScreenProps<"Root">) {
   const [recording, setRecording] = useState<Audio.Recording>();
   const [processing, setProcessing] = useState(false);
 
   const startRecording = async () => {
     try {
-      console.log("Requesting permissions..");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -73,7 +66,7 @@ export default function TabOneScreen({
       allowsRecordingIOS: false,
     });
     const uri = recording?.getURI();
-    console.log("Recording stopped and stored at", uri);
+    // console.log("Recording stopped and stored at", uri);
     await processRecording(uri);
   };
 
@@ -97,8 +90,25 @@ export default function TabOneScreen({
 
     try {
       const response = await axios.post(url, data, config);
-      // console.log(response.data.track.title);
+      if (response.data.track) {
+        const title = response.data.track.title as string;
+        const artist = response.data.track.subtitle as string;
+        navigation.navigate("Rec", { title: title, artist: artist });
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert("No track found", "Please try again");
+      }
     } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const e = err as AxiosError;
+        const status = e.response?.status;
+        if (status == 413) {
+          Alert.alert(
+            "Recording too long",
+            "Please record a shorter audio clip"
+          );
+        }
+      }
       console.error("Failed to process recording", err);
     }
     setProcessing(false);
@@ -110,16 +120,10 @@ export default function TabOneScreen({
     </View>
   ) : (
     <View style={styles.container}>
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
-      />
       <Button
         title={recording ? "Stop Recording" : "Start Recording"}
         onPress={recording ? stopRecording : startRecording}
       />
-      <EditScreenInfo path="/screens/TabOneScreen.tsx" />
     </View>
   );
 }
